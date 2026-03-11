@@ -9,7 +9,7 @@ using UnityEditor;
 
 namespace CategorizedLogging
 {
-    public class LogDispatcher
+    public class LogDispatcher : ILogDispatcher
     {
         private readonly ThreadLocal<int> _threadRecursionDepth = new(() => 0);
         

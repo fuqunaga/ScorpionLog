@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using UnityEngine;
 
 namespace CategorizedLogging
@@ -9,6 +10,7 @@ namespace CategorizedLogging
     public class Logger : ILogger
     {
         private static readonly Dictionary<string, Logger> Loggers = new();
+        private static readonly Dictionary<(string callcerFilePath, int lineNumber), string> CallerToCategoryCache = new();
         
         
         public static Logger Get<T>(T _) => Get<T>();
@@ -23,6 +25,26 @@ namespace CategorizedLogging
             return logger;
         }
         
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        public static Logger GetForCaller([CallerFilePath]string callerFilePath = "", [CallerLineNumber] int callerLineNumber = 0)
+        {
+            var key = (callerFilePath, callerLineNumber);
+            if (CallerToCategoryCache.TryGetValue(key, out var cachedCategory))
+            {
+                return Get(cachedCategory);
+            }
+            
+            var stackTrace = new System.Diagnostics.StackTrace();
+            var callingFrame = stackTrace.GetFrame(1);
+            var method = callingFrame.GetMethod();
+            var declaringType = method.DeclaringType;
+            var category = declaringType != null ? declaringType.Name : "UnknownCategory";
+            var logger = Get(category);
+            
+            CallerToCategoryCache[key] = category;
+            return logger;
+        }
+        
         
         private readonly string _category;
         
@@ -32,9 +54,9 @@ namespace CategorizedLogging
         }
 
         [HideInCallstack]
-        public LogEntry CreateLogEntry(LogLevel logLevel, string message)
+        public void EmitLog(LogLevel logLevel, string message)
         {
-            return new LogEntry(logLevel, _category, message);
+            Log.EmitLog(_category, logLevel, message);
         }
     }
 }

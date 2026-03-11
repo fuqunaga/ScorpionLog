@@ -3,7 +3,7 @@
 namespace CategorizedLogging
 {
     /// <summary>
-    /// ログを受け取り先をデリゲートで指定するシンク
+    /// A log sink that allows external code to listen to log messages via a callback.
     /// </summary>
     public class ListenerSink : ISink
     {
@@ -30,20 +30,6 @@ namespace CategorizedLogging
         public void Log(in LogEntry logEntry)
         {
             _callback(in logEntry);
-        }
-    }
-
-
-    public static class LoggerExtensionsForListenerSink
-    {
-        public static ILogger AddListener(this ILogger logger, ListenerSink.LogCallback callback)
-        {
-            return logger.AddSink(new ListenerSink(callback));
-        }
-
-        public static ILogger AddListener(this ILogger logger, Action<string> callback)
-        {
-            return logger.AddSink(new ListenerSink(callback));
         }
     }
 }

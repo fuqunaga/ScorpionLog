@@ -1,6 +1,4 @@
-﻿using UnityEngine;
-
-namespace CategorizedLogging
+﻿namespace CategorizedLogging
 {
     public interface ISink
     {

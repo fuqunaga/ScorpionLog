@@ -7,20 +7,12 @@ namespace CategorizedLogging
     /// </summary>
     public interface ILogger
     {
-        LogEntry CreateLogEntry(LogLevel logLevel, string message);
-        
+        void EmitLog(LogLevel logLevel, string message);
         void EmitLog(in LogEntry logEntry) => Log.EmitLog(logEntry);
     }
     
     public static class LoggerExtensions
     {
-        [HideInCallstack]
-        public static void EmitLog<TLogger>(this TLogger logger, LogLevel logLevel, string message) where TLogger : ILogger
-        {
-            var logEntry = logger.CreateLogEntry(logLevel, message);
-            logger.EmitLog(logEntry);
-        }
-        
         [HideInCallstack]
         public static void Trace<TLogger>(this TLogger logger, string message) where TLogger : ILogger 
             => logger.EmitLog(LogLevel.Trace, message);

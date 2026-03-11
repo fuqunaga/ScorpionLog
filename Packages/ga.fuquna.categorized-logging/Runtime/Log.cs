@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using UnityEngine;
 
 // ReSharper disable MemberCanBePrivate.Global
@@ -10,12 +9,42 @@ namespace CategorizedLogging
     /// 
     /// カテゴリとして呼び出し元の型を使用する
     /// </summary>
-    public static class Log
+    public static partial class Log
     {
-        public static LogDispatcher LogDispatcher { get; set; } = new();
+        [field:ThreadStatic] private static LogPropertyHolder _propertyHolder;
+        
+        
+        public static ILogDispatcher LogDispatcher { get; set; } = new LogDispatcher();
+        [field:ThreadStatic] public static ILogDispatcher ThreadLocalDispatcher { get; set; }
+        public static LogPropertyHolder PropertyHolder => _propertyHolder ??= new LogPropertyHolder();
+        
 
+        [HideInCallstack]
+        private static void EmitLogInternal(in LogEntry logEntry)
+        {
+            LogDispatcher?.Log(in logEntry);
+            ThreadLocalDispatcher?.Log(in logEntry);
+        }
+        
+        [HideInCallstack]
+        public static void EmitLog(in LogEntry logEntry)
+        {
+            if (PropertyHolder.HasContext)
+            {
+                var newEntry = new LogEntry(
+                    logEntry.LogLevel,
+                    logEntry.Category,
+                    $"{PropertyHolder.ToLogString()} {logEntry.Message}"
+                );
+                
+                EmitLogInternal(in newEntry);
+            }
+            else
+            {
+                EmitLogInternal(in logEntry);
+            }
+        }
 
-        [HideInCallstack] public static void EmitLog(in LogEntry logEntry) => LogDispatcher?.Log(logEntry);
         [HideInCallstack] public static void EmitLog(string category, LogLevel logLevel, string message) => EmitLog(new LogEntry(logLevel, category, message));
         [HideInCallstack] public static void EmitLog(Type typeForCategory, LogLevel logLevel, string message) => EmitLog(typeForCategory.Name, logLevel, message);
         [HideInCallstack] public static void EmitLog<TCaller>(LogLevel logLevel, string message) => EmitLog(typeof(TCaller), logLevel, message);
@@ -43,30 +72,5 @@ namespace CategorizedLogging
         [HideInCallstack] public static void Warning<TCaller>(TCaller _, string message) => Warning<TCaller>(message);
         [HideInCallstack] public static void Error<TCaller>(TCaller _, string message) => Error<TCaller>(message);
         [HideInCallstack] public static void Critical<TCaller>(TCaller _, string message) => Critical<TCaller>(message);
-        
-        
-        #region Register / Unregister Sinks
-
-        public static void RegisterSink(ISink sink, SinkFilterConfig filterConfig)
-        {
-            LogDispatcher?.Register(sink, filterConfig.categoryLogLevels);
-        }
-        
-        public static void RegisterSink(ISink sink, IEnumerable<CategoryMinimumLogLevel> categoryLogLevels)
-        {
-            LogDispatcher?.Register(sink, categoryLogLevels);
-        }
-        
-        public static void RegisterSink(ISink sink, string category, LogLevel logLevel)
-        {
-            LogDispatcher?.Register(sink, category, logLevel);
-        }
-        
-        public static void UnregisterSink(ISink sink)
-        {
-            LogDispatcher?.Unregister(sink);
-        }
-        
-        #endregion
     }
 }
