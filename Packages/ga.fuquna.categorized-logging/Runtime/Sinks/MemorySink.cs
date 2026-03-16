@@ -10,7 +10,7 @@ namespace CategorizedLogging
     [Serializable]
     public class MemorySink : ISink
     {
-        private readonly ConcurrentQueue<LogEntry> _logEntries = new();
+        private readonly ConcurrentQueue<LogRecord> _logEntries = new();
         
         // 別スレッドから呼ばれるので注意
         public event Action onLogEntryAddedMultiThreaded;
@@ -18,12 +18,12 @@ namespace CategorizedLogging
         
         public int Capacity { get; set; } = 1000;
         
-        public IEnumerable<LogEntry> LogEntries => _logEntries;
+        public IEnumerable<LogRecord> LogEntries => _logEntries;
 
 
-        public void Log(in LogEntry logEntry)
+        public void Log(LogRecord logRecord)
         {
-            _logEntries.Enqueue(logEntry);
+            _logEntries.Enqueue(logRecord);
             
             // 古いログを削除
             // たぶんO(n)なのでパフォーマンスが気になったら別の方法を検討する

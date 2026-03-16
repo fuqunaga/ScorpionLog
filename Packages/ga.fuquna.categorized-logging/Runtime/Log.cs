@@ -1,5 +1,5 @@
-using System;
 using System.Runtime.CompilerServices;
+using System.Threading;
 using UnityEngine;
 
 // ReSharper disable MemberCanBePrivate.Global
@@ -12,38 +12,23 @@ namespace CategorizedLogging
     /// </summary>
     public static partial class Log
     {
-        [field: ThreadStatic] private static LogPropertyHolder _propertyHolder;
-
-
+        private static readonly AsyncLocal<ILogDispatcher> LogDispatcherAsyncLocal = new();
+        
+        
         public static ILogDispatcher LogDispatcher { get; set; } = new LogDispatcher();
-        [field: ThreadStatic] public static ILogDispatcher ThreadLocalDispatcher { get; set; }
-        public static LogPropertyHolder PropertyHolder => _propertyHolder ??= new LogPropertyHolder();
-
-
-        [HideInCallstack]
-        private static void EmitLogInternal(in LogEntry logEntry)
+        
+        public static ILogDispatcher AsyncLocalLogDispatcher
         {
-            LogDispatcher?.Log(in logEntry);
-            ThreadLocalDispatcher?.Log(in logEntry);
+            get => LogDispatcherAsyncLocal.Value;
+            set => LogDispatcherAsyncLocal.Value = value;
         }
 
-        [HideInCallstack]
-        public static void EmitLog(in LogEntry logEntry)
-        {
-            if (PropertyHolder.HasContext)
-            {
-                var newEntry = new LogEntry(
-                    logEntry.LogLevel,
-                    $"{PropertyHolder.ToLogString()} {logEntry.Message}",
-                    logEntry.CallerInfo
-                );
 
-                EmitLogInternal(in newEntry);
-            }
-            else
-            {
-                EmitLogInternal(in logEntry);
-            }
+        [HideInCallstack]
+        private static void EmitLog(LogRecord logRecord)
+        {
+            LogDispatcher?.Log(logRecord);
+            AsyncLocalLogDispatcher?.Log(logRecord);
         }
 
   
@@ -55,7 +40,7 @@ namespace CategorizedLogging
             [CallerMemberName] string callerMemberName = ""
             )
         {
-            EmitLog(new LogEntry(logLevel, message,
+            EmitLog(new LogRecord(logLevel, message,
                 new CallerInformation(callerFilePath, callerLineNumber, callerMemberName)));
         }
 
@@ -68,7 +53,7 @@ namespace CategorizedLogging
             [CallerMemberName] string callerMemberName = ""
         )
         {
-            EmitLog(new LogEntry(LogLevel.Trace, message,
+            EmitLog(new LogRecord(LogLevel.Trace, message,
                 new CallerInformation(callerFilePath, callerLineNumber, callerMemberName)));
         }
 
@@ -80,7 +65,7 @@ namespace CategorizedLogging
             [CallerMemberName] string callerMemberName = ""
         )
         {
-            EmitLog(new LogEntry(LogLevel.Debug, message,
+            EmitLog(new LogRecord(LogLevel.Debug, message,
                 new CallerInformation(callerFilePath, callerLineNumber, callerMemberName)));
         }
         
@@ -92,7 +77,7 @@ namespace CategorizedLogging
             [CallerMemberName] string callerMemberName = ""
         )
         {
-            EmitLog(new LogEntry(LogLevel.Information, message,
+            EmitLog(new LogRecord(LogLevel.Information, message,
                 new CallerInformation(callerFilePath, callerLineNumber, callerMemberName)));
         }
 
@@ -104,7 +89,7 @@ namespace CategorizedLogging
             [CallerMemberName] string callerMemberName = ""
         )
         {
-            EmitLog(new LogEntry(LogLevel.Warning, message,
+            EmitLog(new LogRecord(LogLevel.Warning, message,
                 new CallerInformation(callerFilePath, callerLineNumber, callerMemberName)));
         }
 
@@ -116,7 +101,7 @@ namespace CategorizedLogging
             [CallerMemberName] string callerMemberName = ""
         )
         {
-            EmitLog(new LogEntry(LogLevel.Error, message,
+            EmitLog(new LogRecord(LogLevel.Error, message,
                 new CallerInformation(callerFilePath, callerLineNumber, callerMemberName)));
         }
 
@@ -128,7 +113,7 @@ namespace CategorizedLogging
             [CallerMemberName] string callerMemberName = ""
         )
         {
-            EmitLog(new LogEntry(LogLevel.Critical, message,
+            EmitLog(new LogRecord(LogLevel.Critical, message,
                 new CallerInformation(callerFilePath, callerLineNumber, callerMemberName)));
         }
     }

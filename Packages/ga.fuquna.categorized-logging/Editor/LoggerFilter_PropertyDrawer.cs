@@ -1,25 +1,27 @@
-﻿using System;
+﻿#if false // Pending
+
 using UnityEditor;
 using UnityEditor.UIElements;
 using UnityEngine.Assertions;
 using UnityEngine.UIElements;
 
+
 namespace CategorizedLogging.Editor
 {
-    [CustomPropertyDrawer(typeof(SinkFilterConfig))]
-    public class LoggerSetting_PropertyDrawer : PropertyDrawer
+    [CustomPropertyDrawer(typeof(LogFilter))]
+    public class LoggerFilter_PropertyDrawer : PropertyDrawer
     {
         public override VisualElement CreatePropertyGUI(SerializedProperty property)
         {
             var rootContainer = new VisualElement();
             
-            var categoryLogLevelsProperty = property.FindPropertyRelative(nameof(SinkFilterConfig.categoryLogLevels));
+            var filterParameters = property.FindPropertyRelative(nameof(LogFilter.filterParameters));
 
-            Assert.IsNotNull(categoryLogLevelsProperty);
-            Assert.IsTrue(categoryLogLevelsProperty.isArray);
+            Assert.IsNotNull(filterParameters);
+            Assert.IsTrue(filterParameters.isArray);
 
             
-            var innerUI = CreateCategoryModeUI(categoryLogLevelsProperty);
+            var innerUI = CreateCategoryModeUI(filterParameters);
             rootContainer.Add(innerUI);
 
             return rootContainer;
@@ -37,10 +39,10 @@ namespace CategorizedLogging.Editor
             };
 
 
-            var categoryColumn = CreateCategoryLogLevelColumn(nameof(CategoryMinimumLogLevel.category));
+            var categoryColumn = CreateCategoryLogLevelColumn(nameof(LogFilterParameter.category));
             categoryColumn.stretchable = true;
             
-            var logLevelColumn = CreateCategoryLogLevelColumn(nameof(CategoryMinimumLogLevel.logLevel));
+            var logLevelColumn = CreateCategoryLogLevelColumn(nameof(LogFilterParameter.minimumLogLevel));
             logLevelColumn.minWidth = 150;
             
             listView.columns.Add(categoryColumn);
@@ -59,6 +61,6 @@ namespace CategorizedLogging.Editor
                 };
             }
         }
-
     }
 }
+#endif

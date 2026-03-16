@@ -7,23 +7,23 @@ namespace CategorizedLogging
     /// Thread-local sink scope that registers a sink for the current thread and automatically unregisters it when disposed.
     /// </summary>
     [MustDisposeResource]
-    public readonly struct ThreadLocalSinkScope : IDisposable
+    public readonly struct AsyncLocalSinkScope : IDisposable
     {
         private readonly ISink _sink;
         
         
-        public ThreadLocalSinkScope(ISink sink, LogLevel logLevel) : this(sink, SinkFilterConfig.Create(logLevel))
+        public AsyncLocalSinkScope(ISink sink, LogLevel logLevel) : this(sink, LogFilter.Create(logLevel))
         {}
         
-        public ThreadLocalSinkScope(ISink sink, SinkFilterConfig config)
+        public AsyncLocalSinkScope(ISink sink, LogFilter config)
         {
             _sink = sink;
-            Log.RegisterThreadLocalSink(_sink, config);
+            Log.RegisterAsyncLocalSink(_sink, config);
         }
         
         public void Dispose()
         {
-            Log.UnregisterThreadLocalSink(_sink);
+            Log.UnregisterAsyncLocalSink(_sink);
         }
     }
 }

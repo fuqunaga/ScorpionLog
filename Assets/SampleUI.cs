@@ -21,13 +21,10 @@ namespace CategorizedLogging.Samples
 
         private Element CreateLogEmitWindow()
         {
-            var logEmitUI = CreateLogEmitUI();
-            var unityLogEmitUI = CreateUnityLogEmitUI();
-
             return UI.Window(UI.Column(
-                    logEmitUI,
+                    CreateLogEmitUI(),
                     UI.Space().SetHeight(20f),
-                    unityLogEmitUI
+                    CreateUnityLogEmitUI()
                 )
             );
         }

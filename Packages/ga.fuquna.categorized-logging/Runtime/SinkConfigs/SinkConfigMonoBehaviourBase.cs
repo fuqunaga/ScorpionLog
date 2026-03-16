@@ -10,7 +10,7 @@ namespace CategorizedLogging
     {
         public virtual TSink Sink { get; } = new();
 
-        public abstract SinkFilterConfig SinkFilterConfig { get; }
+        public abstract LogFilter LogFilter { get; }
         
         
         #region Unity
@@ -41,7 +41,7 @@ namespace CategorizedLogging
                 return;
             }
             
-            Log.RegisterSink(sink, SinkFilterConfig);
+            Log.RegisterSink(sink, LogFilter);
         }
         
         protected virtual void Unregister()

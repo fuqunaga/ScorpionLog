@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 
 namespace CategorizedLogging
 {
@@ -7,6 +8,8 @@ namespace CategorizedLogging
         public string FilePath { get; }
         public int LineNumber { get; }
         public string MemberName { get; }
+        
+        public string FileName => Path.GetFileNameWithoutExtension(FilePath);
 
         public CallerInformation(string callerFilePath, int callerLineNumber, string memberName)
         {

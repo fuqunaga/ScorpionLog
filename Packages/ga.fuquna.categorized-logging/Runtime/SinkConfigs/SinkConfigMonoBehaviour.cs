@@ -9,8 +9,8 @@ namespace CategorizedLogging
         where TSink : ISink, new()
     {
         [SerializeField]
-        private SinkFilterConfig filterConfig = new();
+        private LogFilter filter = new();
 
-        public override SinkFilterConfig SinkFilterConfig => filterConfig;
+        public override LogFilter LogFilter => filter;
     }
 }

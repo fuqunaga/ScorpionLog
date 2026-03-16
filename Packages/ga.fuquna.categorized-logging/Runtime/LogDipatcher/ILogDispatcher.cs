@@ -4,9 +4,8 @@ namespace CategorizedLogging
 {
     public interface ILogDispatcher
     {
-        void Log(in LogEntry logEntry);
-        public void Register(ISink sink, IEnumerable<CategoryMinimumLogLevel> categoryLogLevels);
-        public void Register(ISink sink, string category, LogLevel logLevel);
+        void Log(LogRecord logRecord);
+        public void Register(ISink sink, LogFilter logFilter);
         public void Unregister(ISink sink);
     }
 }

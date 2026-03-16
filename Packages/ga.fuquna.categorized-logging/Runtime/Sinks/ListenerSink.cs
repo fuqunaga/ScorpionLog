@@ -4,32 +4,26 @@ namespace CategorizedLogging
 {
     /// <summary>
     /// A log sink that allows external code to listen to log messages via a callback.
+    ///
+    /// LogRecordはいずれIDisposableにして回収したいのでコールバックでアプリ側に公開しているのはよろしくない
     /// </summary>
     public class ListenerSink : ISink
     {
-        public delegate void LogCallback(in LogEntry logEntry);
+        private readonly Action<LogRecord> _callback;
         
-        private readonly LogCallback _callback;
-        
-        public ListenerSink(LogCallback　callback)
+        public ListenerSink(Action<LogRecord>　callback)
         {
             _callback = callback;
         }
 
         public ListenerSink(Action<string>　callback)
         {
-            _callback = CallbackWrapper;
-            return;
-            
-            void CallbackWrapper(in LogEntry logEntry)
-            {
-                callback(logEntry.Message);
-            }
+            _callback = (record) => callback(record?.Message);
         }
         
-        public void Log(in LogEntry logEntry)
+        public void Log(LogRecord logRecord)
         {
-            _callback(in logEntry);
+            _callback?.Invoke(logRecord);
         }
     }
 }

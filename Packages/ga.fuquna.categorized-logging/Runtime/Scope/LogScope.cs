@@ -1,7 +1,7 @@
 ﻿using System;
 using JetBrains.Annotations;
 
-namespace CategorizedLogging
+namespace CategorizedLogging.Scope
 {
     /// <summary>
     /// 同一スレッドにおけるスコープ
@@ -10,16 +10,22 @@ namespace CategorizedLogging
     [MustDisposeResource]
     public readonly struct LogScope : IDisposable
     {
-        private readonly int _propertyId;
-
-        public LogScope(in LogProperty logProperty)
+        private readonly LogScopeRecord _record;
+        
+        public LogScope(string name = "", LogScopeRecord parent = null)
         {
-            _propertyId = Log.PropertyHolder.Add(in logProperty);
+            _record = new LogScopeRecord(name, parent);
+        }
+        
+        public LogScope SetProperty(string propertyName, string propertyValue)
+        {
+            _record.SetProperty(propertyName, propertyValue);
+            return this;
         }
 
         public void Dispose()
         {
-            Log.PropertyHolder.Remove(_propertyId);
+            _record.Complete();
         }
     }
 }

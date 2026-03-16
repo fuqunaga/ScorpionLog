@@ -1,8 +1,7 @@
 ﻿using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
-using System.Linq;
 using System.Threading;
 using UnityEngine;
+using UnityEngine.Pool;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -13,17 +12,9 @@ namespace CategorizedLogging
     {
         private readonly ThreadLocal<int> _threadRecursionDepth = new(() => 0);
         
-        public static bool IsAnyCategory(string category) => category == "*";
         
-        
-        private readonly Dictionary<LogLevel, HashSet<ISink>> _anyCategoryLoggers = new();
-        private readonly Dictionary<string, Dictionary<LogLevel, HashSet<ISink>>> _specificLoggers = new();
-        private readonly Dictionary<string, Dictionary<LogLevel, HashSet<ISink>>> _cachedLoggerTable = new();
-        private readonly object _lockLoggers = new();
-        private readonly object _lockCache = new();
-        private bool _needsCacheRefresh = false;
-        
-
+        private readonly Dictionary<LogFilter, HashSet<ISink>> _filterToSinks = new();
+        private readonly object _lockFilterToSinks = new();
 
 #if UNITY_EDITOR
         public LogDispatcher()
@@ -32,20 +23,18 @@ namespace CategorizedLogging
             {
                 if (state == PlayModeStateChange.ExitingEditMode)
                 {
-                    lock (_lockLoggers)
+                    lock (_lockFilterToSinks)
                     {
-                        _anyCategoryLoggers.Clear();
-                        _specificLoggers.Clear();
-                        _cachedLoggerTable.Clear();
-                        _needsCacheRefresh = false;
+                        _filterToSinks.Clear();
                     }
                 }
             };
         }
 #endif
         
+        
         [HideInCallstack]
-        public void Log(in LogEntry logEntry)
+        public void Log(LogRecord logRecord)
         {
             _threadRecursionDepth.Value++;
             try
@@ -56,40 +45,28 @@ namespace CategorizedLogging
                     return;
                 }
 
-                var category = logEntry.Category;
-                var logLevel = logEntry.LogLevel;
-
-                if (logLevel == LogLevel.None)
+                if (logRecord.LogLevel == LogLevel.None)
                 {
                     return;
                 }
 
-                HashSet<ISink> loggers;
+                
+                using var _ = HashSetPool<ISink>.Get(out var totalSinks);
 
-                lock (_lockCache)
+                lock (_lockFilterToSinks)
                 {
-                    if (_needsCacheRefresh)
+                    foreach(var (filter, sinks) in _filterToSinks)
                     {
-                        _needsCacheRefresh = false;
-                        _cachedLoggerTable.Clear();
-                    }
-
-                    if (!_cachedLoggerTable.TryGetValue(category, out var logLevelTable))
-                    {
-                        logLevelTable = new Dictionary<LogLevel, HashSet<ISink>>();
-                        _cachedLoggerTable[category] = logLevelTable;
-                    }
-
-                    if (!logLevelTable.TryGetValue(logLevel, out loggers))
-                    {
-                        loggers = CreateLoggerCache(category, logLevel);
-                        logLevelTable[logLevel] = loggers;
+                        if (filter.IsMatch(logRecord))
+                        {
+                            totalSinks.UnionWith(sinks);
+                        }
                     }
                 }
 
-                foreach (var logger in loggers)
+                foreach (var sink in totalSinks)
                 {
-                    logger.Log(logEntry);
+                    sink.Log(logRecord);
                 }
             }
             finally
@@ -101,115 +78,32 @@ namespace CategorizedLogging
 
 
         /// <summary>
-        /// ILoggerを登録する
-        /// categoryに"*"を指定すると全カテゴリに登録される
-        /// ただし"*"以外のカテゴリに対して個別に登録されたログレベルのほうが優先される
+        /// Sinkを登録する
         /// </summary>
-        public void Register(ISink sink, IEnumerable<CategoryMinimumLogLevel> categoryLogLevels)
+        public void Register(ISink sink, LogFilter filter)
         {
             Unregister(sink);
-            
-            foreach (var categoryLogLevel in categoryLogLevels)
-            {
-                for(var level = categoryLogLevel.logLevel; level <= LogLevel.Critical; level++)
-                {
-                    Register(sink, categoryLogLevel.category, level);
-                }
-            }
-        }
-        
-        
-        [SuppressMessage("ReSharper", "ConvertIfStatementToSwitchStatement")]
-        public void Register(ISink sink, string category, LogLevel logLevel)
-        {
-            var changed = false;
 
-            Dictionary<LogLevel, HashSet<ISink>> logLevelTable = null;
-            
-            if (IsAnyCategory(category))
+            lock (_lockFilterToSinks)
             {
-                logLevelTable = _anyCategoryLoggers;
-            }
-            else
-            {
-                if (!_specificLoggers.TryGetValue(category, out logLevelTable))
+                if (_filterToSinks.TryGetValue(filter, out var sinks))
                 {
-                    logLevelTable = new Dictionary<LogLevel, HashSet<ISink>>();
-                    lock (_lockLoggers)
-                    {
-                        _specificLoggers[category] = logLevelTable;
-                    }
+                    sinks.Add(sink);
+                    return;
                 }
+                
+                _filterToSinks[filter] = new HashSet<ISink> { sink };
             }
-            
-            changed = SetLoggerToDictionary(logLevelTable, logLevel, sink);
-            
-            _needsCacheRefresh |= changed;
         }
-        
         
         public void Unregister(ISink sink)
         {
-            var changed = false;
-
-            lock (_lockLoggers)
+            lock (_lockFilterToSinks)
             {
-                foreach (var logLevelTable in _anyCategoryLoggers.Values)
+                foreach (var sinks in _filterToSinks.Values)
                 {
-                    changed |= logLevelTable.Remove(sink);
+                    sinks.Remove(sink);
                 }
-
-                foreach (var logLevelTable in _specificLoggers.Values.SelectMany(categoryTable => categoryTable.Values))
-                {
-                    changed |= logLevelTable.Remove(sink);
-                }
-            }
-            
-            _needsCacheRefresh |= changed;
-        }
-        
-        
-        private bool SetLoggerToDictionary<TKey>(Dictionary<TKey, HashSet<ISink>> dictionary, TKey key, ISink sink)
-        {
-            lock (_lockLoggers)
-            {
-                if (!dictionary.TryGetValue(key, out var loggerSet))
-                {
-                    loggerSet = new HashSet<ISink>();
-                    dictionary[key] = loggerSet;
-                }
-
-                return loggerSet.Add(sink);
-            }
-        }
-
-        /// <summary>
-        /// CategoryとLogLevelに基づいて対象のILoggerのキャッシュを作成する
-        ///
-        /// AnyCategoryで指定されていてもspecificLoggersで指定されているILoggerはspecificLoggersを優先する
-        /// </summary>
-        private HashSet<ISink> CreateLoggerCache(string category, LogLevel logLevel)
-        {
-            lock (_lockLoggers)
-            {
-                var categoryLoggers = _specificLoggers.GetValueOrDefault(category);
-                var specificCategoryLoggers = categoryLoggers?
-                                                  .SelectMany(table => table.Value)
-                                                  .Distinct()
-                                              ?? Enumerable.Empty<ISink>();
-                
-                var result = new HashSet<ISink>(
-                    _anyCategoryLoggers.GetValueOrDefault(logLevel)
-                    ?? Enumerable.Empty<ISink>()
-                );
-                result.ExceptWith(specificCategoryLoggers);
-                
-                if (categoryLoggers?.TryGetValue(logLevel, out var hashSet) ?? false)
-                {
-                    result.UnionWith(hashSet);
-                }
-
-                return result;
             }
         }
     }

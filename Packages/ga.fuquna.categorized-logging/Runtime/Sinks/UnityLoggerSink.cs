@@ -1,14 +1,12 @@
-﻿using System.Collections.Concurrent;
-using System.Runtime.CompilerServices;
+﻿using System;
+using System.Collections.Concurrent;
 using UnityEngine;
 
 namespace CategorizedLogging
 {
     public class UnityLoggerSink : ISink
     {
-        public delegate string LogEntryToMessage(in LogEntry logEntry);
-        
-        public LogEntryToMessage LogEntryToMessageFormatter { get; set; } = (in LogEntry logEntry) => logEntry.ToString();
+        public Func<LogRecord, string> LogEntryToMessageFormatter { get; set; } = logRecord => logRecord.ToString();
         
         public ConcurrentDictionary<LogLevel, LogType?> LogLevelToUnityLogTypeTable { get; } = new()
         {
@@ -23,23 +21,14 @@ namespace CategorizedLogging
 
         
         [HideInCallstack]
-        public void Log(in LogEntry logEntry)
+        public void Log(LogRecord logRecord)
         {
-            if (LogLevelToUnityLogTypeTable.TryGetValue(logEntry.LogLevel, out var unityLogType)
+            if (LogLevelToUnityLogTypeTable.TryGetValue(logRecord.LogLevel, out var unityLogType)
                 && unityLogType is { } logType
                )
             {
-                Debug.unityLogger.Log(logType, LogEntryToMessageFormatter(logEntry));
+                Debug.unityLogger.Log(logType, LogEntryToMessageFormatter(logRecord));
             }
-        }
-        
-        // 明示的なインターフェース実装に属性を付与してブリッジメソッドを上書きして
-        // ブリッジメソッドも HideInCallstack にする
-        [HideInCallstack]
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        void ISink.Log(in LogEntry logEntry)
-        {
-            Log(logEntry);
         }
     }
 }
