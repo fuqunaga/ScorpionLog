@@ -107,13 +107,13 @@ namespace CategorizedLogging
 
         [HideInCallstack]
         [MethodImpl(MethodImplOptions.NoInlining)]
-        public static void Critical(string message,
+        public static void Fatal(string message,
             [CallerFilePath] string callerFilePath = "",
             [CallerLineNumber] int callerLineNumber = 0,
             [CallerMemberName] string callerMemberName = ""
         )
         {
-            EmitLog(new LogRecord(LogLevel.Critical, message,
+            EmitLog(new LogRecord(LogLevel.Fatal, message,
                 new CallerInformation(callerFilePath, callerLineNumber, callerMemberName)));
         }
     }

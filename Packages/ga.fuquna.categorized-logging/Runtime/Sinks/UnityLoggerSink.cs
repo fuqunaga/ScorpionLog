@@ -15,7 +15,7 @@ namespace CategorizedLogging
             [LogLevel.Information] = LogType.Log,
             [LogLevel.Warning] = LogType.Warning,
             [LogLevel.Error] = LogType.Error,
-            [LogLevel.Critical] = LogType.Error,
+            [LogLevel.Fatal] = LogType.Error,
             [LogLevel.None] = null,
         };
 

@@ -135,17 +135,17 @@ namespace CategorizedLogging.Test.Editor
         }
 
         [Test]
-        public void LogCritical_EmitsCorrectLevel()
+        public void LogFatal_EmitsCorrectLevel()
         {
             LogRecord captured = null;
             using (Log.Listen(LogLevel.Trace, e => captured = e))
             {
-                Log.Critical("critical message");
+                Log.Fatal("fatal message");
             }
 
             Assert.IsNotNull(captured);
-            Assert.AreEqual(LogLevel.Critical, captured.LogLevel);
-            Assert.AreEqual("critical message", captured.Message);
+            Assert.AreEqual(LogLevel.Fatal, captured.LogLevel);
+            Assert.AreEqual("fatal message", captured.Message);
         }
 
         [Test]
