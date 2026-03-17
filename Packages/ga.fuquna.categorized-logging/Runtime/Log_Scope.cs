@@ -1,5 +1,5 @@
-﻿using CategorizedLogging.Scope;
-using JetBrains.Annotations;
+﻿using System.Runtime.CompilerServices;
+using CategorizedLogging.Scope;
 
 namespace CategorizedLogging
 {
@@ -15,6 +15,17 @@ namespace CategorizedLogging
         public static LogScope BeginScope(string name = "")
         {
             return new LogScope(name);
+        }
+
+        /// <summary>
+        /// 同一スレッドにおけるスコープを開始します
+        /// 主にusingとともに使用してDisposeされることを想定しています
+        /// </summary>
+        public static LogScope BeginPropertyScope<T>(
+            T propertyValue,
+            [CallerArgumentExpression("propertyValue")] string propertyName = "")
+        {
+            return new LogScope().SetProperty(propertyName, propertyValue);
         }
     }
 }
