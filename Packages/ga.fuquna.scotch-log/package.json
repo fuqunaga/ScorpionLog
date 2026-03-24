@@ -14,7 +14,7 @@
   },
   "description": "SCOTCH (SCOpe-based Telemetry Concept Hierarchy) logging library for Unity.",
   "repository": {
-    "url": "https://github.com/fuqunaga/ScorpionLog"
+    "url": "https://github.com/fuqunaga/ScotchLog"
   },
   "license": "MIT"
 }
