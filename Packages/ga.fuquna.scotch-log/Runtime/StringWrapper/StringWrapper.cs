@@ -29,6 +29,41 @@ public struct StringWrapper : IDisposable
     
     
     public override string ToString() => _string ?? _nativeText.ToString();
+
+
+    public StringWrapper Clone()
+    {
+        if (_string != null)
+        {
+            return new StringWrapper(_string);
+        }
+
+        if (!_nativeText.IsCreated)
+        {
+            return default;
+        }
+
+        var dst = new NativeText(_nativeText.Capacity, Allocator);
+        dst.CopyFrom(_nativeText);
+        return new StringWrapper(dst);
+    }
+
+    public static StringWrapper CreateCopy(in StringWrapper source)
+    {
+        if (source._string != null)
+        {
+            return new StringWrapper(source._string);
+        }
+
+        if (!source._nativeText.IsCreated)
+        {
+            return default;
+        }
+
+        var dst = new NativeText(source._nativeText.Capacity, Allocator);
+        dst.CopyFrom(source._nativeText);
+        return new StringWrapper(dst);
+    }
     
     
     public void Dispose()

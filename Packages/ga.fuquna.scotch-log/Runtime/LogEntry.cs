@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using ScotchLog.Scope;
-using UnityEngine.Pool;
 
 namespace ScotchLog
 {
@@ -28,9 +27,23 @@ namespace ScotchLog
             return entry;
         }
 
+        public static LogEntry RentCopy(LogEntry source)
+        {
+            if (source == null) throw new ArgumentNullException(nameof(source));
+
+            var entry = RentOrCreate();
+            entry.CopyFrom(source);
+            return entry;
+        }
+
         public static void Return(LogEntry logEntry)
         {
-            logEntry.Dispose();
+            if (logEntry == null || logEntry.IsDisposed)
+            {
+                return;
+            }
+
+            logEntry.ReleaseForPool();
             Pool.Enqueue(logEntry);
         }
 
@@ -103,10 +116,23 @@ namespace ScotchLog
         {
             _timestamp = DateTime.Now;
             _logLevel = logLevel;
-            _stringWrapper = message;
+            _stringWrapper = StringWrapper.CreateCopy(message);
             _callerInfo = callerInfoInformation;
             _scope = scope ?? LogScopeRecord.Current;
             
+            IsDisposed = false;
+        }
+
+        public void CopyFrom(LogEntry source)
+        {
+            if (source == null) throw new ArgumentNullException(nameof(source));
+
+            _timestamp = source.Timestamp;
+            _logLevel = source.LogLevel;
+            _stringWrapper = source.StringWrapper.Clone();
+            _callerInfo = source.CallerInfo;
+            _scope = source.Scope;
+
             IsDisposed = false;
         }
         
@@ -118,15 +144,18 @@ namespace ScotchLog
 
         public void Dispose()
         {
-            if (IsDisposed)
-            {
-                return;
-            }
-            
+            Return(this);
+        }
+
+        private void ReleaseForPool()
+        {
             IsDisposed = true;
             _stringWrapper.Dispose();
-            
-            Return(this);
+            _stringWrapper = default;
+            _scope = null;
+            _callerInfo = default;
+            _timestamp = default;
+            _logLevel = default;
         }
 
         private void ThrowIfDisposed()
