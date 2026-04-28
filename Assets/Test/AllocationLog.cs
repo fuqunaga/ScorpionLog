@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Globalization;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using NUnit.Framework;
+using Unity.Collections;
 using UnityEngine;
 using UnityEngine.Profiling;
 
@@ -262,17 +262,38 @@ namespace ScotchLog.Test.Editor
             return values;
         }
 
-        private static string BuildFloatCsv(float[] values) =>
-            values.Length == 0
-                ? string.Empty
-                : string.Join(",", values.Select(v => v.ToString("G9", CultureInfo.InvariantCulture)));
+        private static NativeText BuildFloatCsv(float[] values)
+        {
+            if (values.Length == 0)
+            {
+                return new NativeText(0, Allocator.Temp);
+            }
+
+            // Reserve roughly 16 characters per float value for the CSV text.
+            const int estimatedCharsPerFloat = 16;
+            var text = new NativeText(values.Length * estimatedCharsPerFloat, Allocator.Temp);
+
+            for (var i = 0; i < values.Length; i++)
+            {
+                if (i > 0) text.Append(',');
+                // FixedString64Bytes に G9 フォーマットで変換して追記
+                // var fs = new FixedString64Bytes();
+                // fs.Append(values[i].ToString("G9", CultureInfo.InvariantCulture));
+                // text.Append(fs);
+                text.Append(values[i]);
+            }
+
+            return text;
+        }
 
         private static double MeasureFloatCsvLogAlloc(int floatCount, int measureCount, bool withScope = false)
         {
             var values = CreateSequentialFloats(floatCount);
-            var message = BuildFloatCsv(values);
+            
             return MeasureAlloc(() =>
             {
+                // テキスト生成のアロケーションもテスト内で計測
+                using var message = BuildFloatCsv(values);
                 if (withScope)
                 {
                     using (Log.BeginScope("Scope").SetProperty("env", "prod"))

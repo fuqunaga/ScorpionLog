@@ -2,7 +2,8 @@
     "name": "ScotchLog.Test",
     "rootNamespace": "",
     "references": [
-        "GUID:1be162ab4a922d142a78106a02848f2f"
+        "GUID:1be162ab4a922d142a78106a02848f2f",
+        "GUID:e0cd26848372d4e5c891c569017e11f1"
     ],
     "includePlatforms": [
         "Editor"
