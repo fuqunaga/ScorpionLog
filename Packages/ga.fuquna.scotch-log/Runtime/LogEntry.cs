@@ -27,7 +27,7 @@ namespace ScotchLog
             return entry;
         }
 
-        public static LogEntry RentCopy(LogEntry source)
+        public static LogEntry Rent(LogEntry source)
         {
             if (source == null) throw new ArgumentNullException(nameof(source));
 
@@ -116,7 +116,7 @@ namespace ScotchLog
         {
             _timestamp = DateTime.Now;
             _logLevel = logLevel;
-            _stringWrapper = StringWrapper.CreateCopy(message);
+            _stringWrapper = message;
             _callerInfo = callerInfoInformation;
             _scope = scope ?? LogScopeRecord.Current;
             

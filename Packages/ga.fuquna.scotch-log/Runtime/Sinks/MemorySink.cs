@@ -26,7 +26,7 @@ namespace ScotchLog
 
         public void Log(LogEntry logEntry)
         {
-            var copiedEntry = LogEntry.RentCopy(logEntry);
+            var copiedEntry = LogEntry.Rent(logEntry);
 
             _logEntries.Add(copiedEntry);
 
