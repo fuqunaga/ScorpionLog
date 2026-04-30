@@ -1,7 +1,7 @@
 {
   "name": "ga.fuquna.scotch-log",
   "displayName": "Scotch Log",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "unity": "6000.2",
   "keywords": [
     "log",

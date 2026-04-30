@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/fuqunaga/ScotchLog/compare/ga.fuquna.scotch-log-v0.3.1...ga.fuquna.scotch-log-v0.4.0) (2026-04-30)
+
+
+### Features
+
+* implement ConcurrentRingBuffer for thread-safe log entry management ([3e8409a](https://github.com/fuqunaga/ScotchLog/commit/3e8409a64320e770da8b21b7a7f546d63785a4ab))
+
 ## 0.3.1 (2026-03-24)
 
 
