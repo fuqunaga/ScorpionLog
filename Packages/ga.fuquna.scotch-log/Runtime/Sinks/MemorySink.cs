@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Unity.Collections;
 
 namespace ScotchLog
 {
@@ -26,7 +27,13 @@ namespace ScotchLog
 
         public void Log(LogEntry logEntry)
         {
-            var copiedEntry = LogEntry.Rent(logEntry);
+            // StringWrapperをPersistantにしてコピー
+            var copiedEntry = LogEntry.Rent(
+                logEntry.LogLevel,
+                logEntry.StringWrapper.Clone(Allocator.Persistent),
+                logEntry.CallerInfo,
+                logEntry.Scope
+            );
 
             _logEntries.Add(copiedEntry);
 

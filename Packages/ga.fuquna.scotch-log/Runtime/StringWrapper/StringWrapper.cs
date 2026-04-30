@@ -31,7 +31,7 @@ public struct StringWrapper : IDisposable
     public override string ToString() => _string ?? _nativeText.ToString();
 
 
-    public StringWrapper Clone()
+    public StringWrapper Clone(Allocator? allocator = null)
     {
         if (_string != null)
         {
@@ -43,7 +43,7 @@ public struct StringWrapper : IDisposable
             return default;
         }
 
-        var dst = new NativeText(_nativeText.Capacity, Allocator);
+        var dst = new NativeText(_nativeText.Capacity, allocator ?? Allocator);
         dst.CopyFrom(_nativeText);
         return new StringWrapper(dst);
     }

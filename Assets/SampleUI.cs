@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using RosettaUI;
+using Unity.Collections;
 using UnityEngine;
 
 namespace ScotchLog.Samples
@@ -137,7 +138,7 @@ namespace ScotchLog.Samples
  
             void UpdateLogField()
             {
-                logText = string.Join(Environment.NewLine, memorySink.LogEntries.Select(record => record.ToString()));
+                logText = string.Join(Environment.NewLine, memorySink.LogEntries.Select(logEntry => logEntry.ToString()));
             }
         }
     }

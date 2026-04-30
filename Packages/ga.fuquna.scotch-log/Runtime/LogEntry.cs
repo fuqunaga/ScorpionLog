@@ -27,15 +27,6 @@ namespace ScotchLog
             return entry;
         }
 
-        public static LogEntry Rent(LogEntry source)
-        {
-            if (source == null) throw new ArgumentNullException(nameof(source));
-
-            var entry = RentOrCreate();
-            entry.CopyFrom(source);
-            return entry;
-        }
-
         public static void Return(LogEntry logEntry)
         {
             if (logEntry == null || logEntry.IsDisposed)
