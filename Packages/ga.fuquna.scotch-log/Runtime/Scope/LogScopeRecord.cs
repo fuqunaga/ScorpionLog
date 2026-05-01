@@ -54,20 +54,98 @@ public record LogScopeRecord
     #endregion
 
 
+    
+    private string _name;
+    private LogScopeRecordHolder _parentHolder;
+    private DateTime _startTimeUtc;
+    private DateTime _endTimeUtc;
     private Dictionary<string, string> _properties;
-
     private int _referenceCount;
+    
 
     public int Id { get; private set; } = -1;
-    public string Name { get; private set; }
-    public LogScopeRecord Parent { get; private set; }
-    public DateTime StartTimeUtc { get; private set; }
-    public DateTime EndTimeUtc { get; private set; }
-    public DateTime StartTime => StartTimeUtc.ToLocalTime();
-    public DateTime EndTime => EndTimeUtc.ToLocalTime();
-    public IReadOnlyDictionary<string, string> Properties => _properties;
-    public bool IsRoot => Parent == null || Parent == this;
 
+    public string Name
+    {
+        get
+        {
+            ThrowIfAlreadyDeactivated();
+            return _name;
+        }
+        private set => _name = value;
+    }
+
+    public LogScopeRecord Parent
+    {
+        get
+        {
+            ThrowIfAlreadyDeactivated();
+            return _parentHolder.Record;
+        }
+        private set
+        {
+            _parentHolder.Dispose();
+            _parentHolder = value.CreateHolder();
+        }
+    }
+
+    public DateTime StartTimeUtc
+    {
+        get
+        {
+            ThrowIfAlreadyDeactivated();
+            return _startTimeUtc;
+        }
+        private set => _startTimeUtc = value;
+    }
+
+    public DateTime EndTimeUtc
+    {
+        get
+        {
+            ThrowIfAlreadyDeactivated();
+            return _endTimeUtc;
+        }
+        private set => _endTimeUtc = value;
+    }
+
+    public DateTime StartTime
+    {
+        get
+        {
+            ThrowIfAlreadyDeactivated();
+            return _startTimeUtc.ToLocalTime();
+        }
+    }
+
+    public DateTime EndTime
+    {
+        get
+        {
+            ThrowIfAlreadyDeactivated();
+            return _endTimeUtc.ToLocalTime();
+        }
+    }
+
+    public IReadOnlyDictionary<string, string> Properties
+    {
+        get
+        {
+            ThrowIfAlreadyDeactivated();
+            return _properties;
+        }
+    }
+
+    public bool IsRoot
+    {
+        get
+        {
+            ThrowIfAlreadyDeactivated();
+            return this == RootScope;
+        }
+    }
+
+    
     private void Activate()
     {
         Id = GetNextId();
@@ -89,10 +167,17 @@ public record LogScopeRecord
         _properties?.Clear();
     }
 
+    private void ThrowIfAlreadyDeactivated()
+    {
+        if (Id  <= 0)
+        {
+            throw new InvalidOperationException("Scope is already closed.");
+        }
+    }
 
     public void SetProperty(string propertyName, string propertyValue)
     {
-        if (EndTimeUtc != default)
+        if (_endTimeUtc != default)
         {
             throw new InvalidOperationException("Cannot set property on a closed scope.");
         }
@@ -103,12 +188,12 @@ public record LogScopeRecord
 
     public void End()
     {
-        if (EndTimeUtc != default)
+        if (_endTimeUtc != default)
         {
             throw new InvalidOperationException("Scope is already closed.");
         }
 
-        EndTimeUtc = DateTime.UtcNow;
+        _endTimeUtc = DateTime.UtcNow;
 
         if (Parent != null)
         {
