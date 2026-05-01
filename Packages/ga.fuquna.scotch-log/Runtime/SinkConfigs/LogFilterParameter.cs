@@ -36,7 +36,7 @@ namespace ScotchLog
                 return false;
             }
             
-            var scope = logEntry.Span;
+            var scope = logEntry.Scope;
             while (scope != null)
             {
                 if (IsMatch(scope))
@@ -50,33 +50,33 @@ namespace ScotchLog
             return false;
         }
         
-        public bool IsMatch(LogSpanRecord spanRecord)
+        public bool IsMatch(LogScopeRecord scopeRecord)
         {
-            return IsMatchName(spanRecord)
-                   && IsMatchProperties(spanRecord);
+            return IsMatchName(scopeRecord)
+                   && IsMatchProperties(scopeRecord);
         }
 
-        public bool IsMatchName(LogSpanRecord spanRecord)
+        public bool IsMatchName(LogScopeRecord scopeRecord)
         {
             return (scopeName == "*") 
-                    ||(scopeName == spanRecord.Name);
+                    ||(scopeName == scopeRecord.Name);
         }
 
-        public bool IsMatchProperties(LogSpanRecord spanRecord)
+        public bool IsMatchProperties(LogScopeRecord scopeRecord)
         {
             if (properties == null || properties.Count == 0)
             {
                 return true;
             }
 
-            if (spanRecord.Properties == null)
+            if (scopeRecord.Properties == null)
             {
                 return false;
             }
 
             foreach (var (key, value) in properties)
             {
-                if (!spanRecord.Properties.TryGetValue(key, out var recordValue) || recordValue != value)
+                if (!scopeRecord.Properties.TryGetValue(key, out var recordValue) || recordValue != value)
                 {
                     return false;
                 }

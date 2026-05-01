@@ -18,7 +18,7 @@ namespace ScotchLog
             actionOnRelease: entry => entry.Clear()
         );
 
-        public static LogEntry Rent(LogLevel logLevel, in StringWrapper message, in CallerInformation callerInfoInformation, LogSpanRecord scope = null)
+        public static LogEntry Rent(LogLevel logLevel, in StringWrapper message, in CallerInformation callerInfoInformation, LogScopeRecord scope = null)
         {
             var entry = Pool.Get();
             entry.Set(logLevel, message, callerInfoInformation, scope);
@@ -40,7 +40,7 @@ namespace ScotchLog
         private LogLevel _logLevel;
         private StringWrapper _stringWrapper;
         private CallerInformation _callerInfo;
-        private LogSpan _span;
+        private LogScopeRecord _scope;
 
 
         public DateTime Timestamp
@@ -79,12 +79,12 @@ namespace ScotchLog
             }
         }
 
-        public LogSpan Span
+        public LogScopeRecord Scope
         {
             get
             {
                 ThrowIfDisposed();
-                return _span;
+                return _scope;
             }
         }
         
@@ -100,7 +100,7 @@ namespace ScotchLog
         public bool IsDisposed { get; private set; }
 
         
-        public void Set(LogLevel logLevel, in StringWrapper message, in CallerInformation callerInfoInformation, in LogSpan? span = null)
+        public void Set(LogLevel logLevel, in StringWrapper message, in CallerInformation callerInfoInformation, LogScopeRecord scope = null)
         {
             ThrowIfDisposed();
             
@@ -108,7 +108,7 @@ namespace ScotchLog
             _logLevel = logLevel;
             _stringWrapper = message;
             _callerInfo = callerInfoInformation;
-            _span = span ?? LogSpan.Current;
+            _scope = scope ?? LogScopeRecord.Current;
         }
 
         public void CopyFrom(LogEntry source)
@@ -119,7 +119,7 @@ namespace ScotchLog
             _logLevel = source.LogLevel;
             _stringWrapper = source.StringWrapper.Clone();
             _callerInfo = source.CallerInfo;
-            _span = source.Span;
+            _scope = source.Scope;
 
             IsDisposed = false;
         }
@@ -139,7 +139,7 @@ namespace ScotchLog
             
             _stringWrapper.Dispose();
             _stringWrapper = default;
-            _span = default;
+            _scope = null;
             _callerInfo = default;
             _timestamp = default;
             _logLevel = default;

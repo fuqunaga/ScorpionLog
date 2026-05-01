@@ -6,20 +6,19 @@ namespace ScotchLog.Scope;
 /// <summary>
 /// ログスコープ
 /// アプリケーション向けのLogSpanのインターフェース
-/// スコープとはLogScopePropertyを保持する単位
 /// </summary>
 public readonly struct LogScope : IDisposable
 {
-    private readonly LogSpanRecord _record;
+    private readonly LogScopeRecord _record;
 
         
     public LogScope() : this("")
     {
     }
 
-    public LogScope(string name, LogSpanRecord parent = null)
+    public LogScope(string name, LogScopeRecord parent = null)
     {
-        _record = new LogSpanRecord(name, parent);
+        _record = LogScopeRecord.Start(name, parent);
     }
         
     public LogScope SetProperty<T>(T propertyValue, [CallerArgumentExpression("propertyValue")] string propertyName = "")
@@ -36,6 +35,6 @@ public readonly struct LogScope : IDisposable
 
     public void Dispose()
     {
-        _record.Close();
+        _record.End();
     }
 }

@@ -32,7 +32,7 @@ namespace ScotchLog
                 logEntry.LogLevel,
                 logEntry.StringWrapper.Clone(Allocator.Persistent),
                 logEntry.CallerInfo,
-                logEntry.Span
+                logEntry.Scope
             );
 
             _logEntries.Add(copiedEntry);
