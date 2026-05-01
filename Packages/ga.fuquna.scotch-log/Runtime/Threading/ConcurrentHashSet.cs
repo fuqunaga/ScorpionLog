@@ -42,8 +42,9 @@ public sealed class ConcurrentHashSet<T> : IReadOnlyCollection<T>
     // Tries to remove and return one arbitrary element.
     public bool TryTake(out T item)
     {
-        foreach (var key in _dictionary.Keys)
+        foreach (var entry in _dictionary)
         {
+            var key = entry.Key;
             if (_dictionary.TryRemove(key, out _))
             {
                 item = key;
