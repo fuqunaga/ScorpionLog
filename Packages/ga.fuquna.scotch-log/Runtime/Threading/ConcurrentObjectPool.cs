@@ -1,13 +1,12 @@
 ﻿using System;
-using System.Collections.Concurrent;
 using UnityEngine.Pool;
 
 namespace ScotchLog;
 
 public class ConcurrentObjectPool<T> : IObjectPool<T>
-    where T : class, new()
+    where T : class
 {
-    private readonly ConcurrentQueue<T> _pool = new();
+    private readonly ConcurrentHashSet<T> _pool = new();
 
     private readonly Func<T> _createFunc;
     private readonly Action<T> _actionOnGet;
@@ -19,8 +18,7 @@ public class ConcurrentObjectPool<T> : IObjectPool<T>
     public ConcurrentObjectPool(
         Func<T> createFunc,
         Action<T> actionOnGet = null,
-        Action<T> actionOnRelease = null,
-        Action<T> actionOnDestroy = null
+        Action<T> actionOnRelease = null
     )
     {
         _createFunc = createFunc;
@@ -30,7 +28,7 @@ public class ConcurrentObjectPool<T> : IObjectPool<T>
 
     public T Get()
     {
-        if (!_pool.TryDequeue(out var value))
+        if (!_pool.TryTake(out var value))
         {
             value = _createFunc();        
         }
@@ -49,7 +47,7 @@ public class ConcurrentObjectPool<T> : IObjectPool<T>
     public void Release(T element)
     {
         _actionOnRelease?.Invoke(element);
-        _pool.Enqueue(element);
+        _pool.Add(element);
     }
 
     public void Clear()
