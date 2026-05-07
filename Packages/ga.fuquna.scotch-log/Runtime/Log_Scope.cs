@@ -4,7 +4,7 @@ using ScotchLog.Scope;
 namespace ScotchLog
 {
     /// <summary>
-    /// スコープとはLogPropertyを保持する単位
+    /// スコープとはLogScopePropertyを保持する単位
     /// /// </summary>
     public static partial class Log
     {

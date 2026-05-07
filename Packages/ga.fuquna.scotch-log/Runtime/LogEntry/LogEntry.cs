@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Concurrent;
 using ScotchLog.Scope;
 
 namespace ScotchLog
@@ -11,31 +10,29 @@ namespace ScotchLog
     /// 長期間保持する必要があるSinkは自前でデータを別の型にコピーする必要がある
     /// ディスパッチ後Dispose()が呼ばれる
     /// </summary>
-    public record LogEntry : IDisposable
+    public class LogEntry : IDisposable
     {
-        private static readonly ConcurrentQueue<LogEntry> Pool = new();
+        private static readonly ConcurrentObjectPool<LogEntry> Pool = new(
+            createFunc: () => new LogEntry(),
+            actionOnGet: entry => entry.IsDisposed = false,
+            actionOnRelease: entry => entry.Clear()
+        );
 
-        private static LogEntry RentOrCreate()
-        {
-            return Pool.TryDequeue(out var logEntry) ? logEntry : new LogEntry();
-        }
-        
         public static LogEntry Rent(LogLevel logLevel, in StringWrapper message, in CallerInformation callerInfoInformation, LogScopeRecord scope = null)
         {
-            var entry = RentOrCreate();
+            var entry = Pool.Get();
             entry.Set(logLevel, message, callerInfoInformation, scope);
             return entry;
         }
 
         public static void Return(LogEntry logEntry)
         {
-            if (logEntry == null || logEntry.IsDisposed)
+            if (logEntry == null ||  logEntry.IsDisposed)
             {
                 return;
             }
 
-            logEntry.ReleaseForPool();
-            Pool.Enqueue(logEntry);
+            Pool.Release(logEntry);
         }
 
 
@@ -105,13 +102,13 @@ namespace ScotchLog
         
         public void Set(LogLevel logLevel, in StringWrapper message, in CallerInformation callerInfoInformation, LogScopeRecord scope = null)
         {
+            ThrowIfDisposed();
+            
             _timestamp = DateTime.Now;
             _logLevel = logLevel;
             _stringWrapper = message;
             _callerInfo = callerInfoInformation;
             _scope = scope ?? LogScopeRecord.Current;
-            
-            IsDisposed = false;
         }
 
         public void CopyFrom(LogEntry source)
@@ -130,17 +127,16 @@ namespace ScotchLog
 
         public override string ToString()
         {
+            ThrowIfDisposed();
             return $"[{Timestamp:yyyy-MM-dd HH:mm:ss.fff}][{LogLevel}] {Message}";
         }
 
-        public void Dispose()
-        {
-            Return(this);
-        }
+        public void Dispose() => Return(this);
 
-        private void ReleaseForPool()
+        private void Clear()
         {
             IsDisposed = true;
+            
             _stringWrapper.Dispose();
             _stringWrapper = default;
             _scope = null;

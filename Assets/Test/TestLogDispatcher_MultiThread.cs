@@ -2,12 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using NUnit.Framework;
-using ScotchLog;
 
 namespace ScotchLog.Test.Editor
 {
     /// <summary>
-    /// LogDispatcher.Log() の HashSetPool 部分がスレッドセーフでないことを検証するテスト
+    /// LogDispatcher のマルチスレッド実行時の安全性を検証するテスト
     /// </summary>
     public class TestLogDispatcher_MultiThread
     {
@@ -30,8 +29,8 @@ namespace ScotchLog.Test.Editor
         }
 
         /// <summary>
-        /// 複数スレッドから同時に Log() を呼ぶと HashSetPool の競合により
-        /// Sink の呼び出し回数が期待値と一致しないことを確認する
+        /// 複数スレッドから同時に Log() を呼んだときに、
+        /// 例外が発生せず Sink 呼び出し回数が期待値と一致することを確認する
         /// </summary>
         [Test]
         public void Log_MultiThread_HashSetPool_IsNotThreadSafe()
@@ -103,9 +102,9 @@ namespace ScotchLog.Test.Editor
                 if (sink.Count != expectedTotal)
                 {
                     Assert.Fail(
-                        $"HashSetPool の競合により Sink の呼び出し回数が不正です。" +
+                        $"並行 Log 実行時に Sink の呼び出し回数が不正です。" +
                         $"期待値: {expectedTotal}, 実際: {sink.Count}\n" +
-                        $"(同じ HashSet が複数スレッドに払い出された可能性があります)");
+                        $"(LogDispatcher の並行実行における取りこぼし/重複の可能性があります)");
                 }
             }
 
@@ -114,7 +113,7 @@ namespace ScotchLog.Test.Editor
         }
 
         /// <summary>
-        /// Log() と Register()/Unregister() が並行実行された場合の競合を確認する
+        /// Log() と Register()/Unregister() を並行実行した場合の安全性を確認する
         /// </summary>
         [Test]
         public void Log_MultiThread_WithRegisterUnregister_IsNotThreadSafe()
