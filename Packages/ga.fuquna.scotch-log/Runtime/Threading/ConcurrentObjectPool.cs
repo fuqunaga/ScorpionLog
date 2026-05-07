@@ -8,9 +8,7 @@ namespace ScotchLog;
 public class ConcurrentObjectPool<T> : IObjectPool<T>
     where T : class
 {
-    // T はクラス型なので参照同一性（reference identity）で同値判定する。
-    // value-based の GetHashCode/Equals に依存すると、Dispose 済みオブジェクトを
-    // プールに戻す際に内部フィールドへのアクセスで例外が発生する可能性がある。
+    // 参照同一性で比較し、同じインスタンスの二重Releaseを検出する。
     private sealed class ReferenceComparer : IEqualityComparer<T>
     {
         public static readonly ReferenceComparer Instance = new();
@@ -18,15 +16,27 @@ public class ConcurrentObjectPool<T> : IObjectPool<T>
         public int GetHashCode(T obj) => RuntimeHelpers.GetHashCode(obj);
     }
 
-    private readonly ConcurrentHashSet<T> _pool = new(ReferenceComparer.Instance);
+    private readonly object _gate = new();
+    // 非アクティブ要素の本体ストア。
+    private readonly Stack<T> _pool = new();
+    // プール内重複を防ぐための在庫インデックス。
+    private readonly HashSet<T> _inPool = new(ReferenceComparer.Instance);
 
     private readonly Func<T> _createFunc;
     private readonly Action<T> _actionOnGet;
     private readonly Action<T> _actionOnRelease;
-    
-    public int CountInactive => _pool.Count;
-    
-    
+
+    public int CountInactive
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _pool.Count;
+            }
+        }
+    }
+
     public ConcurrentObjectPool(
         Func<T> createFunc,
         Action<T> actionOnGet = null,
@@ -40,14 +50,22 @@ public class ConcurrentObjectPool<T> : IObjectPool<T>
 
     public T Get()
     {
-        if (!_pool.TryTake(out var value))
+        T value;
+        lock (_gate)
         {
-            value = _createFunc();        
+            if (_pool.Count > 0)
+            {
+                value = _pool.Pop();
+                _inPool.Remove(value);
+            }
+            else
+            {
+                value = _createFunc();
+            }
         }
 
         _actionOnGet?.Invoke(value);
         return value;
-        
     }
 
     public PooledObject<T> Get(out T v)
@@ -56,14 +74,36 @@ public class ConcurrentObjectPool<T> : IObjectPool<T>
         return new PooledObject<T>(v, this);
     }
 
-    public void Release(T element)
+    // 重複Releaseは例外ではなくfalseを返す。
+    public bool Release(T element)
     {
-        _actionOnRelease?.Invoke(element);
-        _pool.Add(element);
+        if (element == null) throw new ArgumentNullException(nameof(element));
+
+        lock (_gate)
+        {
+            if (!_inPool.Add(element))
+            {
+                return false;
+            }
+
+            _actionOnRelease?.Invoke(element);
+            _pool.Push(element);
+            return true;
+        }
+    }
+
+    // IObjectPool<T> 互換（戻り値は破棄）。
+    void IObjectPool<T>.Release(T element)
+    {
+        _ = Release(element);
     }
 
     public void Clear()
     {
-        _pool.Clear();
+        lock (_gate)
+        {
+            _pool.Clear();
+            _inPool.Clear();
+        }
     }
 }

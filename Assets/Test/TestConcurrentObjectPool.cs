@@ -12,6 +12,17 @@ namespace ScotchLog.Test.Editor
             public int Value;
         }
 
+        private static void AssertNoGCAlloc(Action action, string label)
+        {
+            // JIT/内部キャッシュの初期化ノイズを避ける。
+            action();
+            action();
+
+            var constraint = new UnityEngine.TestTools.Constraints.AllocatingGCMemoryConstraint();
+            var result = constraint.ApplyTo((TestDelegate)(() => action()));
+            Assert.That(result.IsSuccess, Is.False, $"{label} でGCアロケーションが発生しました");
+        }
+
         // ─── Get ─────────────────────────────────────────────────────────────
 
         [Test]
@@ -238,7 +249,64 @@ namespace ScotchLog.Test.Editor
             if (exceptions.Count > 0)
                 Assert.Fail($"マルチスレッドで例外が発生しました: {exceptions[0]}");
         }
+
+        [Test]
+        public void Release_DuplicateElement_ReturnsFalse()
+        {
+            var pool = new ConcurrentObjectPool<SimpleObj>(createFunc: () => new SimpleObj());
+            var obj = new SimpleObj();
+
+            var first = pool.Release(obj);
+            var second = pool.Release(obj);
+
+            Assert.That(first, Is.True);
+            Assert.That(second, Is.False);
+            Assert.That(pool.CountInactive, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void Alloc_SteadyState_GetRelease_NoGCAlloc()
+        {
+            var pool = new ConcurrentObjectPool<SimpleObj>(createFunc: () => new SimpleObj());
+
+            var seed = pool.Get();
+            pool.Release(seed);
+
+            AssertNoGCAlloc(() =>
+            {
+                var obj = pool.Get();
+                pool.Release(obj);
+            }, "steady-state Get/Release");
+        }
+
+        [Test]
+        public void Alloc_SteadyState_GetOutDispose_NoGCAlloc()
+        {
+            var pool = new ConcurrentObjectPool<SimpleObj>(createFunc: () => new SimpleObj());
+
+            var seed = pool.Get();
+            pool.Release(seed);
+
+            AssertNoGCAlloc(() =>
+            {
+                using (pool.Get(out _))
+                {
+                }
+            }, "steady-state Get(out)/Dispose");
+        }
+
+        [Test]
+        public void Alloc_DuplicateRelease_ReturnsFalse_NoGCAlloc()
+        {
+            var pool = new ConcurrentObjectPool<SimpleObj>(createFunc: () => new SimpleObj());
+            var obj = new SimpleObj();
+            pool.Release(obj);
+
+            var result = true;
+            AssertNoGCAlloc(() => { result = pool.Release(obj); }, "duplicate Release");
+
+            Assert.That(result, Is.False);
+            Assert.That(pool.CountInactive, Is.EqualTo(1));
+        }
     }
 }
-
-
