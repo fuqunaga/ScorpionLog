@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.4.0](https://github.com/fuqunaga/ScotchLog/compare/ga.fuquna.scotch-log-v0.3.1...ga.fuquna.scotch-log-v0.4.0) (2026-05-07)
+
+
+### Features
+
+* add implicit conversion from ReadOnlySpan&lt;char&gt; to StringWrapper and enable unsafe code ([faf6bbc](https://github.com/fuqunaga/ScotchLog/commit/faf6bbc0635cbacfba724466b3658a7d0671f725))
+* implement ConcurrentHashSet for thread-safe collection management ([1f76d1b](https://github.com/fuqunaga/ScotchLog/commit/1f76d1b6d249dab09448b598907893ca8028659b))
+* implement ConcurrentObjectPool for efficient object management ([341306c](https://github.com/fuqunaga/ScotchLog/commit/341306cd3fc0cb896e8d04225222b6053997489c))
+* implement ConcurrentRingBuffer for thread-safe log entry management ([3e8409a](https://github.com/fuqunaga/ScotchLog/commit/3e8409a64320e770da8b21b7a7f546d63785a4ab))
+* introduce LogEntryPersistant for long-term log entry storage and enhance LogScopeRecord with improved property management ([b4cd47e](https://github.com/fuqunaga/ScotchLog/commit/b4cd47ecf51fc376288ff90367d112b6f4ecce00))
+
 ## 0.3.1 (2026-03-24)
 
 
